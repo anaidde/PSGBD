@@ -39,4 +39,26 @@ BEGIN
   -- Inserarea unei note la un curs pentru un curs inexistent- cu adaugarea cursurlui
   
   -- Inserarea unei note cand nu exista nici studentul si nici cursul
+  
+  --STERGERE
+  
+  
+END;
+
+
+
+-- Stergerea unui student si totoada a notelor sale  
+-- Stergerea unui curs si totodata a notelor luate la acel curs
+CREATE OR REPLACE TRIGGER stergere_student_note 
+INSTEAD OF delete ON Catalog
+DECLARE
+v_id studenti.id%type;
+v_id_curs cursuri.id%type;
+BEGIN
+  SELECT id into v_id from studenti where nume= :OLD.nume and prenume= :OLD.prenume;
+  select id into v_id_curs from cursuri where titlu_curs = :OLD.titlu_curs;
+  delete from note where id_student = v_id;
+  delete from studenti where nume = :OLD.nume and prenume= :OLD.prenume;
+  delete from note where id_curs = v_id_curs;
+  delete from cursuri where titlu_curs = :OLD.titlu_curs;
 END;
