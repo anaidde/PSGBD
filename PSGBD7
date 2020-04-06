@@ -1,0 +1,42 @@
+CREATE OR REPLACE VIEW Catalog AS (SELECT nume, prenume, titlu_curs, valoare from
+studenti s join note n on s.id = n.id_student join cursuri c on n.id_curs = c.id);
+
+CREATE OR REPLACE TRIGGER insert_student
+  INSTEAD OF insert ON Catalog
+DECLARE 
+v_id studenti.id%type;
+v_id_max studenti.id%type;
+v_grupa studenti.grupa%type;
+v_nr_grupa int;
+v_id_note note.id%type;
+v_id_curs curs.id%type;
+BEGIN
+  -- Inserarea unei note la un curs pentru un student inexistent cu adaugarea studentului
+  select id into v_id from studenti s where  s.nume = NEW.nume and s.prenume = NEW.prenume;
+  
+  IF v_id = 0 THEN
+    select max(id) into v_id_max from studenti;
+    v_grupa := ROUND(DBMS_RANDOM.VALUE(0, 1));
+    
+    if v_grupa = 0 then
+      v_nr_grupa := ROUND(DBMS_RANDOM.VALUE(1,6));
+      v_grupa := 'A' || v_nr_grupa;
+    else
+      v_nr_grupa := ROUND(DBMS_RANDOM.VALUE(1,6));
+      v_grupa := 'B' || v_nr_grupa;
+    end if;
+    
+    insert into studenti values (v_id_max+1, TO_CHAR(ROUND(DBMS_RANDOM.VALUE(100, 999))).DBMS_RANDOM.STRING('U', 2) . TO_CHAR(ROUND(DBMS_RANDOM.VALUE(0, 9)))
+    , NEW.nume, NEW.prenume, ROUND(DBMS_RANDOM.VALUE(1, 3)), v_grupa, ROUND(DBMS_RANDOM.VALUE(100,600)), new.nume || '.'  ||new.prenume || '@info.ro', null ,sysdate, sysdate);
+    
+  END IF;
+  
+  select id into v_id  from studenti where nume = NEW.nume and prenume = NEW.prenume;
+  select max(id) into v_id_note from note;
+  select id into v_id_curs from cursuri where titlu_curs = NEW.titlu_curs;
+  
+  insert into note values ( v_id_note+1, v_id,  v_id_curs, NEW.valoare, sysdate, sysdate, sysdate);
+  -- Inserarea unei note la un curs pentru un curs inexistent- cu adaugarea cursurlui
+  
+  -- Inserarea unei note cand nu exista nici studentul si nici cursul
+END;
