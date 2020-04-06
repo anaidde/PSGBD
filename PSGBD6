@@ -1,0 +1,100 @@
+-- Creez obiectul masina care are 3 atribute: marca, modelul masinii si data in care s-a lansat.
+create or replace type masina as object
+( marca varchar2(10),
+  model_masina varchar2(10),
+  data_lansare date,
+  NOT FINAL member procedure afisare_marca_masina, -- procedura care afiseaza marca si modelul masinii
+  member procedure afisare_data_lansare, -- procedura care afiseaza data in care a fost lansata masina 
+  map member function zile_de_la_lansare return number, -- am folosit aceasi metoda de comparare ca cea pusa pe site-ul laboratorului.
+  CONSTRUCTOR FUNCTION masina(marca varchar2, model_masina varchar2) -- constructor explicit cu doua argumente
+    RETURN SELF AS RESULT
+) NOT FINAL;
+/
+
+drop type masina_modificata; -- obiectul mostenitor
+create or replace type masina_modificata under masina
+(
+    culoare varchar2(15), -- care are un atribut in plus
+    overriding member procedure afisare_marca_masina 
+)
+/
+
+create or replace type body masina as --body-ul obiectului MASINA
+  member procedure afisare_marca_masina is
+  begin
+    dbms_output.put_line('Masina este marca: ' || self.marca || ', model : ' || self.model_masina);
+  end afisare_marca_masina;
+  
+  member procedure afisare_data_lansare is
+  begin
+    dbms_output.put_line('Masina a fost lansata la data de : ' || self.data_lansare);
+  end afisare_data_lansare;
+  
+  map member function zile_de_la_lansare return number is
+  begin
+    return (sysdate-self.data_lansare);
+  end zile_de_la_lansare;
+  
+  CONSTRUCTOR FUNCTION masina(marca varchar2, model_masina varchar2)
+    RETURN SELF AS RESULT
+  as
+  begin
+    self.marca := marca;
+    self.model_masina := model_masina;
+    self.data_lansare := sysdate; -- data in care se expeleaza constructorul explicit
+    return;
+  end;
+end;
+/
+
+create or replace type body masina_modificata as
+  overriding member procedure afisare_marca_masina is
+  begin
+    dbms_output.put_line('Masina de marca ' || self.marca || ', model : ' || self.model_masina || ' de culoare ' || self.culoare); -- override-ul procedurii de afisare a marcii avand in plus atribitul 'culoare' 
+  end afisare_marca_masina;
+end;
+
+/
+drop table masini_oop; -- inainte de a crea tabela, am folosit comanda drop pentru a ma asigura ca aceasta nu exista si poate fi creata
+/
+CREATE TABLE masini_oop (nr_matricol VARCHAR2(4), obiect MASINA); -- tabela in care stochez un anumit nr matricol si obiectele de tip MASINA
+/
+set serveroutput on;
+declare
+v_masina1 MASINA;
+v_masina2 MASINA;
+v_masina3 MASINA;
+v_masina4 MASINA_MODIFICATA;
+begin
+ v_masina1 := masina('Dacia', 'Duster' ,TO_DATE('11/04/2010', 'dd/mm/yyyy')); --constructor implicit
+ v_masina2 := masina('Opel', 'Astra', TO_DATE('12/05/2004', 'dd/mm/yyyy')); --constructor implicit
+ v_masina3 := masina('Renault', 'Megan'); -- constructor explicit
+ v_masina4 := masina_modificata('Skoda' , 'Octavia', TO_DATE('05/12/1998', 'dd/mm/yyyy'), 'alb'); --constructor implicit al obiectului mostenitor
+ 
+ -- exemplificare a metodelor pentru fiecare obiect
+ v_masina1.afisare_marca_masina(); 
+ v_masina2.afisare_data_lansare();
+ v_masina3.afisare_marca_masina();
+ v_masina4.afisare_marca_masina();
+ 
+ -- exemplificare a atributelor obiectelor
+ dbms_output.put_line(v_masina1.marca);
+ dbms_output.put_line(v_masina2.model_masina);
+ dbms_output.put_line(v_masina3.data_lansare);
+ dbms_output.put_line(v_masina4.culoare);
+ 
+ -- populez tabela cu care imi verific daca elementele mele sunt intr-adevar comparabile
+ insert into masini_oop values ('100', v_masina1);
+ insert into masini_oop values ('101', v_masina2);
+ insert into masini_oop values ('102', v_masina3);
+ insert into masini_oop values ('103', v_masina4);
+ 
+ -- o alta exemplificare a comparabilitatii obiectelor
+ if(v_masina1 < v_masina2) then
+    dbms_output.put_line('Masina cu marca ' || v_masina1.marca || ' este mai noua decat masina cu marca ' || v_masina2.marca);
+ else
+    dbms_output.put_line('Masina cu marca ' || v_masina2.marca || ' este mai noua decat masina cu marca ' || v_masina1.marca);
+ end if;
+end; 
+/
+select * from masini_oop order by obiect; -- ma asigur ca obiectele sunt comparabile
